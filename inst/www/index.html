@@ -21,22 +21,58 @@
 
 <script> 
 $(document).ready(function() {
+  
+  //globals
+  var mydata;
+  var mapdata;
+  
   $("#csvfile").on("change", function(){
-    var req = $("#uploadform").r_post_form("uploaddata", function(loc, key){
-      datainfo(key);
+    
+    //verify that a file is selected
+    if(!$("#csvfile")[0].files[0]) return;
+    
+    //call uploaddata function
+    var req = opencpu.r_fun_call("uploaddata", {
+      csvfile : $("#csvfile")[0].files[0]    
+    }, function(tmp){
+      mydata = tmp;
+      datainfo();
     }).fail(function(){
-      alert(req.responseText)
-    })
+      alert(req.responseText);
+    });
   });
   
-  function datainfo(mydata){
-    //use multipart post
-    opencpu.r_fun_post("datainfo", {mydata : mydata}, function(loc){
-      
+  function datainfo(){
+    opencpu.r_fun_json("datainfo", {mydata : mydata}, function(jsondata){
+      $.each(jsondata.strings, function(i, val){
+        $("<option>").text(val).appendTo("#nameJoinColumn");
+      });
+      $.each(jsondata.all, function(i, val){
+        $("<option>").text(val).appendTo("#nameColumnToPlot");
+      });      
     });
   }
   
+  $("#datafields select").on("change", function(){
+    opencpu.r_fun_call("join", {
+      dF : mydata, 
+      nameJoinColumn : $("#nameJoinColumn").val(),
+      joinCode : $("#joinCode").val()
+    }, function(tmp){
+      mapdata = tmp;      
+    });
+  });
   
+  $("#mapfields select").on("change", function(){
+    $("#plotdiv").r_fun_plot("map", {
+      mapToPlot : mapdata, 
+      nameColumnToPlot : $("#nameColumnToPlot").val(),
+      mapRegion : $("#mapRegion").val()
+    });
+  });  
+    
+  $("#plotdiv").resizable();
+    
 });
 </script>
 <style>
@@ -46,6 +82,16 @@ $(document).ready(function() {
   height: 600px;
   border: 1px solid #e3e3e3;
   border-radius: 4px;
+}
+
+#csvfile{
+  max-width: 197px;
+}
+
+button{
+  float: right;
+  width: 100px;
+  margin-right: 20px;
 }
 
 </style>
@@ -60,11 +106,60 @@ $(document).ready(function() {
   <div class="row">
     <div class="col-lg-3">
       <div class="well">
-        <form id="uploadform" enctype="multipart/form-data">
+        <form role="form" id="uploadform" enctype="multipart/form-data">
           <fieldset>
-            <label>Select CSV file</label>
-            <input type="file" name="csvfile" id="csvfile">
-           </fieldset>
+            <legend>(1) Upload Data</legend>
+            
+              <div class="form-group">
+                 <input type="file" id="csvfile">
+                <p class="help-block">Upload a CSV data file.</p>
+              </div>
+              
+          </fieldset>         
+          
+          <fieldset id="datafields">
+            <legend>(2) Merge Data</legend>
+            
+            <div class="form-group">
+              <label>Country Column</label>
+              <select class="form-control" id="nameJoinColumn">        
+              </select>    
+            </div>
+            
+            <div class="form-group">
+              <label>Join Code</label>
+              <select class="form-control" id="joinCode">
+                <option>ISO2</option>
+                <option selected="selected">ISO3</option>
+                <option>FIPS</option>
+                <option>NAME</option>
+                <option>UN</option>
+              </select>    
+            </div>   
+
+          </fieldset>         
+          
+          <fieldset id="mapfields">
+            <legend>(3) Create Map</legend>            
+            
+            <div class="form-group">
+              <label>Plot Column</label>
+              <select class="form-control" id="nameColumnToPlot">
+              </select>   
+            </div>
+            
+            <div class="form-group">
+              <label>Map Region</label>
+              <select class="form-control" id="mapRegion">
+                <option selected="selected">world</option>
+                <option>africa</option>
+                <option>oceania</option>
+                <option>eurasia</option>
+                <option>uk</option>
+              </select>    
+            </div>    
+            
+          </fieldset>
         </form>
         
         <br />

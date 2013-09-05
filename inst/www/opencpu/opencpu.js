@@ -1,6 +1,6 @@
 /**
  * Javascript client library for OpenCPU
- * Version 0.1
+ * Version 0.2
  * Depends: jQuery
  * Requires HTML5 FormData for file uploads
  * http://github.com/jeroenooms/opencpu.js
@@ -36,11 +36,42 @@
   }
   
   //for POSTing files
-  // new Upload($('#file')[0].files)
+  //new Upload($('#file')[0].files)
   function Upload(file){
-    this.file = this.file;
-    this.getFile(){
+    if(file instanceof File){
+      this.file = file;
+    } else if(file instanceof FileList){
+      this.file = file[0];
+    } else if (file.files instanceof FileList){
+      this.file = file.files[0];
+    } else if (file.length > 0 && file[0].files instanceof FileList){
+      this.file = file[0].files[0];
+    } else {
+      throw 'invalid new Upload(file). Argument file must be a HTML <input type="file"></input>';
+    }
+    
+    this.getFile = function(){
       return file;
+    }
+  }
+  
+  function stringify(x){
+    if(x instanceof Session){
+      return x.getKey();
+    } else if(x instanceof Snippet){
+      return x.getCode();
+    } else if(x instanceof Upload){
+      return x.getFile();
+    } else if(x instanceof File){
+      return x; 
+    } else if(x instanceof FileList){
+      return x[0];
+    } else if(x && x.files instanceof FileList){
+      return x.files[0];
+    } else if(x && x.length && x[0].files instanceof FileList){
+      return x[0].files[0];
+    } else {
+      return JSON.stringify(x);
     }
   }
   
@@ -59,9 +90,9 @@
     
     //ajax call
     var jqxhr = $.ajax(settings).done(function(){
-      var loc = jqxhr.getResponseHeader('Location');
-      var key = jqxhr.getResponseHeader('X-ocpu-session');
-      loc ? handler(loc, key) : console.log("Response was successful but had no location?");
+      var loc = jqxhr.getResponseHeader('Location') || console.log("Location response header missing.");
+      var key = jqxhr.getResponseHeader('X-ocpu-session') || console.log("X-ocpu-session response header missing.");
+      handler(new Session(loc, key));
     }).fail(function(){
       console.log("OpenCPU error HTTP " + jqxhr.status + "\n" + jqxhr.responseText)
     });
@@ -81,8 +112,12 @@
   //call function using url encoding
   //needs to wrap arguments in quotes, etc
   function r_fun_call_urlencoded(fun, args, handler){
+    var data = {};
+    $.each(args, function(key, val){
+      data[key] = stringify(val);
+    });
     return r_fun_ajax(fun, {
-      data: $.param(args || {}),
+      data: $.param(data),
       contentType : 'x-www-form-urlencoded',       
     }, handler);    
   }
@@ -90,22 +125,47 @@
   //call a function using multipart/form-data
   //use for file uploads. Requires HTML5
   function r_fun_call_multipart(fun, args, handler){
-    var data = new FormData();
-    jQuery.each(args, function(key, value) {
-      //value = transform(value);
-      //data.append(key, file);
-    });    
-  }  
+    var formdata = new FormData();
+    $.each(args, function(key, value) {
+      formdata.append(key, stringify(value));
+    });
+    return r_fun_ajax(fun, {
+      data: formdata,
+      contentType : 'multipart/form-data',       
+      cache: false,
+      contentType: false,
+      processData: false      
+    }, handler);       
+  }
   
-  //call a function. Automatically determines type based on argument classes.
+  //Automatically determines type based on argument classes.
   function r_fun_call(fun, args, handler){
-
+    var hasfiles = false;
+    var hascode = false;
+    
+    //find argument types
+    $.each(args, function(key, value){
+      if(value instanceof File || value instanceof Upload || value instanceof FileList){
+        hasfiles = true;
+      } else if (value instanceof Snippet || value instanceof Session){
+        hascode = true;
+      }
+    });
+    
+    //determine type
+    if(hasfiles){
+      return r_fun_call_multipart(fun, args, handler);
+    } else if(hascode){
+      return r_fun_call_urlencoded(fun, args, handler);
+    } else {
+      return r_fun_call_json(fun, args, handler); 
+    }
   }    
   
   //call a function and return JSON
   function r_fun_json(fun, args, handler){
-    return r_fun_call(fun, args, function(loc){
-      $.get(loc + "R/.val/json", function(data){
+    return r_fun_call(fun, args, function(tmp){
+      $.get(tmp.getLoc() + "R/.val/json", function(data){
         handler && handler(data);
       }).fail(function(){
         console.log("Failed to get JSON response for " + loc);
@@ -138,8 +198,8 @@
     myplot.spinner.show();
 
     // call the function
-    return r_fun_call(fun, args, function(newloc) {
-      myplot.setlocation(newloc);
+    return r_fun_call(fun, args, function(tmp) {
+      myplot.setlocation(tmp.getLoc());
     }).always(function(){
       myplot.spinner.hide();      
     });
@@ -254,8 +314,12 @@
 
   //exported functions
   opencpu.r_fun_call = r_fun_call;
-  opencpu.r_fun_post = r_fun_post;
   opencpu.r_fun_json = r_fun_json;
+  
+  //exported constructors
+  opencpu.Session = Session;
+  opencpu.Snippet = Snippet;
+  opencpu.Upload = Upload;
   
   //for innernetz exploder
   if (typeof console == "undefined") {

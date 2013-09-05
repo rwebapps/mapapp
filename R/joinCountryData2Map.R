@@ -1,3 +1,4 @@
-joinCountryData2Map <- function(dF, nameJoinColumn, ...){
-  joinCountryData2Map(dF=dF, nameJoinColumn=nameJoinColumn, verbose=TRUE, suggestForFailedCodes=TRUE, ...);  
+join <- function(dF, nameJoinColumn, joinCode, ...){
+  out <- joinCountryData2Map(dF=dF, joinCode = joinCode, nameJoinColumn=nameJoinColumn,  ...); 
+  out;
 }
