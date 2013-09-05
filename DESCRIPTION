@@ -1,0 +1,11 @@
+Package: mapapp
+Type: OpenCPU Application
+Title: create basic country maps
+Version: 0.1
+Date: 2013-09-04
+Author: Jeroen Ooms
+Maintainer: Jeroen <jeroenooms@gmail.com>
+Description: create basic country maps
+License: Apache2
+Imports:
+    rworldmap

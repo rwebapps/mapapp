@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>OpenCPU Country Mapping App</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<!-- ocpu library -->
+<script src="jquery/jquery-1.9.1.js"> </script>
+<script src="opencpu/opencpu.js"> </script>
+
+<!-- some optional styling stuff -->
+<link href="bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
+<link href="bootstrap/css/bootstrap-theme.min.css" rel="stylesheet" media="screen">
+
+<link href="jqueryui/css/ui-lightness/jquery-ui-1.10.3.custom.css" rel="stylesheet" media="screen">
+
+<script src="bootstrap/js/bootstrap.js"> </script>
+<script src="jqueryui/jquery-ui-1.10.3.custom.js"> </script>
+
+<script> 
+$(document).ready(function() {
+  $("#csvfile").on("change", function(){
+    var req = $("#uploadform").r_post_form("uploaddata", function(loc, key){
+      datainfo(key);
+    }).fail(function(){
+      alert(req.responseText)
+    })
+  });
+  
+  function datainfo(mydata){
+    //use multipart post
+    opencpu.r_fun_post("datainfo", {mydata : mydata}, function(loc){
+      
+    });
+  }
+  
+  
+});
+</script>
+<style>
+
+#plotdiv {
+  width: 100%;
+  height: 600px;
+  border: 1px solid #e3e3e3;
+  border-radius: 4px;
+}
+
+</style>
+</head>
+
+<body>
+<div class="container">
+  <div class="page-header">
+    <h1>Country Map App</h1>
+  </div>
+    
+  <div class="row">
+    <div class="col-lg-3">
+      <div class="well">
+        <form id="uploadform" enctype="multipart/form-data">
+          <fieldset>
+            <label>Select CSV file</label>
+            <input type="file" name="csvfile" id="csvfile">
+           </fieldset>
+        </form>
+        
+        <br />
+     
+      </div>
+    </div>
+    
+    <div class="col-lg-9">
+      <div id="plotdiv"></div>
+    </div>  
+  </div>
+</div>
+</body>
+</html>
