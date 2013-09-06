@@ -23,55 +23,112 @@
 $(document).ready(function() {
   
   //globals
-  var mydata;
+  var dataframe;
   var mapdata;
+  var joincode;
+  var countrycolumn;
   
+  //automatically upload CSV file on change.
   $("#csvfile").on("change", function(){
-    
     //verify that a file is selected
-    if(!$("#csvfile")[0].files[0]) return;
-    
-    //call uploaddata function
-    var req = opencpu.r_fun_call("uploaddata", {
-      csvfile : $("#csvfile")[0].files[0]    
-    }, function(tmp){
-      mydata = tmp;
-      datainfo();
-    }).fail(function(){
-      alert(req.responseText);
-    });
+    if($("#csvfile")[0].files[0]){
+      
+      //clear state
+      dataframe = null;
+      mapdata = null;
+      joincode = null;
+      countrycolumn = null;
+      $("#nameJoinColumn").empty();  
+      $("#nameColumnToPlot").empty();
+      
+      //call uploaddata function
+      var req = opencpu.r_fun_call("uploaddata", {
+        csvfile : $("#csvfile")[0].files[0]    
+      }, function(tmp){
+        dataframe = tmp;
+        datainfo();
+      }).fail(function(jqXHR){
+        errormsg(jqXHR.responseText);
+      });
+    }
   });
   
   function datainfo(){
-    opencpu.r_fun_json("datainfo", {mydata : mydata}, function(jsondata){
+    return opencpu.r_fun_json("datainfo", {mydata : dataframe}, function(jsondata){
       $.each(jsondata.strings, function(i, val){
-        $("<option>").text(val).appendTo("#nameJoinColumn");
+        if(val){
+          $("<option>").text(val).appendTo("#nameJoinColumn");
+        }
       });
-      $.each(jsondata.all, function(i, val){
-        $("<option>").text(val).appendTo("#nameColumnToPlot");
+      
+      $.each(jsondata.other, function(i, val){
+        if(val){
+          $("<option>").text(val).appendTo("#nameColumnToPlot");
+        }
       });      
+    }).fail(function(jqXHR){
+      errormsg(jqXHR.responseText);
+    });
+  }
+      
+  function joindata(e){
+    var newjoincode = $("#joinCode").val();
+    var newcountrycolumn = $("#nameJoinColumn").val();
+    
+    return opencpu.r_fun_call("join", {
+      dF : dataframe, 
+      nameJoinColumn : newcountrycolumn,
+      joinCode :newjoincode
+    }, function(tmp){
+      mapdata = tmp;
+      joincode = newjoincode;
+      countrycolumn = newcountrycolumn;
+      $.get(tmp.getFile("messages.txt"), function(text){
+        successmsg(text);
+      });
+    }).fail(function(jqXHR){
+      errormsg(jqXHR.responseText);
     });
   }
   
-  $("#datafields select").on("change", function(){
-    opencpu.r_fun_call("join", {
-      dF : mydata, 
-      nameJoinColumn : $("#nameJoinColumn").val(),
-      joinCode : $("#joinCode").val()
-    }, function(tmp){
-      mapdata = tmp;      
-    });
-  });
-  
-  $("#mapfields select").on("change", function(){
-    $("#plotdiv").r_fun_plot("map", {
+  function makeplot(){
+    return $("#plotdiv").r_fun_plot("map", {
       mapToPlot : mapdata, 
       nameColumnToPlot : $("#nameColumnToPlot").val(),
-      mapRegion : $("#mapRegion").val()
+      colourPalette : $("#colourPalette").val(),
+      mapTitle : $("#mapTitle").val()
+    }).fail(function(jqXHR){
+      errormsg(jqXHR.responseText);
     });
-  });  
+  }
+  
+  function successmsg(text){
+    $("#successdiv").empty().append('<div class="alert alert-success alert-dismissable"><a href="#" class="close" data-dismiss="alert">&times;</a>' + text + '</div>');
+  }
+  
+  function errormsg(text){
+    $("#errordiv").empty().append('<div class="alert alert-danger alert-dismissable"><a href="#" class="close" data-dismiss="alert">&times;</a>' + text + '</div>');
+  }  
     
+  $("#plotbutton").on("click", function(){
+    if(joincode == $("#joinCode").val() && countrycolumn == $("#nameJoinColumn").val()){
+      //nothing has changed since last join
+      makeplot(); 
+    } else {
+      //first rejoin data, then make plot
+      joindata().done(makeplot);
+    }
+  });
+  
   $("#plotdiv").resizable();
+  
+  $(document).ajaxStart(function() {
+    $("button, input, select").attr("disabled", "disabled");
+  }); 
+  
+  $(document).ajaxComplete(function() {
+    $("button, input, select").removeAttr("disabled");
+  });
     
 });
 </script>
@@ -84,14 +141,8 @@ $(document).ready(function() {
   border-radius: 4px;
 }
 
-#csvfile{
+#csvfile {
   max-width: 197px;
-}
-
-button{
-  float: right;
-  width: 100px;
-  margin-right: 20px;
 }
 
 </style>
@@ -108,17 +159,16 @@ button{
       <div class="well">
         <form role="form" id="uploadform" enctype="multipart/form-data">
           <fieldset>
-            <legend>(1) Upload Data</legend>
+            <legend>(1) Import Data</legend>
             
               <div class="form-group">
                  <input type="file" id="csvfile">
-                <p class="help-block">Upload a CSV data file.</p>
+                <p class="help-block">Upload a CSV file. <a href="../R/countryExData/csv">(example data)</a></p>
               </div>
               
           </fieldset>         
           
           <fieldset id="datafields">
-            <legend>(2) Merge Data</legend>
             
             <div class="form-group">
               <label>Country Column</label>
@@ -140,7 +190,7 @@ button{
           </fieldset>         
           
           <fieldset id="mapfields">
-            <legend>(3) Create Map</legend>            
+            <legend>(2) Create Map</legend>            
             
             <div class="form-group">
               <label>Plot Column</label>
@@ -149,25 +199,36 @@ button{
             </div>
             
             <div class="form-group">
-              <label>Map Region</label>
-              <select class="form-control" id="mapRegion">
-                <option selected="selected">world</option>
-                <option>africa</option>
-                <option>oceania</option>
-                <option>eurasia</option>
-                <option>uk</option>
+              <label>Color Palette</label>
+              <select class="form-control" id="colourPalette">
+                <option selected="selected">heat</option>
+                <option>diverging</option>
+                <option>white2Black</option>
+                <option>black2White</option>
+                <option>topo</option>
+                <option>rainbow</option>
+                <option>terrain</option>
+                <option>negpos8</option>             
               </select>    
-            </div>    
+            </div>   
+            
+            <div class="form-group">
+              <label>Map Title</label>  
+              <input class="form-control" id="mapTitle" type="text" placeholder="My Plot">
+            </div>
             
           </fieldset>
+          
+          <button id="plotbutton" type="button" class="btn btn-primary">Plot Map!</button>
+          
         </form>
-        
-        <br />
      
       </div>
     </div>
     
     <div class="col-lg-9">
+      <div id="successdiv"></div>
+      <div id="errordiv"></div>      
       <div id="plotdiv"></div>
     </div>  
   </div>

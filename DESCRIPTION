@@ -7,5 +7,6 @@ Author: Jeroen Ooms
 Maintainer: Jeroen <jeroenooms@gmail.com>
 Description: create basic country maps
 License: Apache2
+LazyData: true
 Imports:
     rworldmap

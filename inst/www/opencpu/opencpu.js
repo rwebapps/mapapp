@@ -2,10 +2,10 @@
  * Javascript client library for OpenCPU
  * Version 0.2
  * Depends: jQuery
- * Requires HTML5 FormData for file uploads
+ * Requires HTML5 FormData support for file uploads
  * http://github.com/jeroenooms/opencpu.js
  * 
- * Include this file in your apps (packages).
+ * Include this file in your apps and packages. 
  * Edit r_path variable below if needed.
  */
 
@@ -22,6 +22,10 @@
     
     this.getLoc = function(){
       return loc;
+    }
+    
+    this.getFile = function(path){
+      return this.getLoc() + "files/" + path;
     }
   }
   
