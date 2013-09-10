@@ -40,6 +40,9 @@ $(document).ready(function() {
       countrycolumn = null;
       $("#nameJoinColumn").empty();  
       $("#nameColumnToPlot").empty();
+      $("#successdiv").empty();
+      $("#errordiv").empty()
+      $("#plotbutton").attr("disabled", "disabled");
       
       //call uploaddata function
       var req = opencpu.r_fun_call("uploaddata", {
@@ -49,6 +52,8 @@ $(document).ready(function() {
         datainfo();
       }).fail(function(jqXHR){
         errormsg(jqXHR.responseText);
+      }).always(function(){
+        $("#uploadform").get(0).reset();      
       });
     }
   });
@@ -66,6 +71,7 @@ $(document).ready(function() {
           $("<option>").text(val).appendTo("#nameColumnToPlot");
         }
       });      
+      $("#plotbutton").removeAttr("disabled");
     }).fail(function(jqXHR){
       errormsg(jqXHR.responseText);
     });
@@ -75,6 +81,7 @@ $(document).ready(function() {
     var newjoincode = $("#joinCode").val();
     var newcountrycolumn = $("#nameJoinColumn").val();
     
+    $("#plotbutton").attr("disabled", "disabled");
     return opencpu.r_fun_call("join", {
       dF : dataframe, 
       nameJoinColumn : newcountrycolumn,
@@ -88,10 +95,13 @@ $(document).ready(function() {
       });
     }).fail(function(jqXHR){
       errormsg(jqXHR.responseText);
+    }).always(function(){
+      $("#plotbutton").removeAttr("disabled", "disabled"); 
     });
   }
   
   function makeplot(){
+    $("#plotbutton").attr("disabled", "disabled");
     return $("#plotdiv").r_fun_plot("map", {
       mapToPlot : mapdata, 
       nameColumnToPlot : $("#nameColumnToPlot").val(),
@@ -99,6 +109,8 @@ $(document).ready(function() {
       mapTitle : $("#mapTitle").val()
     }).fail(function(jqXHR){
       errormsg(jqXHR.responseText);
+    }).always(function(){
+      $("#plotbutton").removeAttr("disabled", "disabled");    
     });
   }
   
@@ -113,7 +125,7 @@ $(document).ready(function() {
   $("#plotbutton").on("click", function(){
     if(joincode == $("#joinCode").val() && countrycolumn == $("#nameJoinColumn").val()){
       //nothing has changed since last join
-      makeplot(); 
+      makeplot().always(); 
     } else {
       //first rejoin data, then make plot
       joindata().done(makeplot);
@@ -123,13 +135,14 @@ $(document).ready(function() {
   $("#plotdiv").resizable();
   
   $(document).ajaxStart(function() {
-    $("button, input, select").attr("disabled", "disabled");
+    $(".progress").show();
   }); 
   
-  $(document).ajaxComplete(function() {
-    $("button, input, select").removeAttr("disabled");
+  $(document).ajaxStop(function() {
+    $(".progress").hide();
   });
-    
+  
+  
 });
 </script>
 <style>
@@ -143,6 +156,14 @@ $(document).ready(function() {
 
 #csvfile {
   max-width: 197px;
+}
+
+#buttondiv{
+  text-align:right;
+}
+
+.progress{
+  display: none;  
 }
 
 </style>
@@ -219,8 +240,10 @@ $(document).ready(function() {
             
           </fieldset>
           
-          <button id="plotbutton" type="button" class="btn btn-primary">Plot Map!</button>
-          
+          <fieldset id="buttondiv">
+            <button id="plotbutton" type="button" class="btn btn-primary" disabled="disabled">Plot Map!</button>
+          </fieldset>
+
         </form>
      
       </div>
@@ -229,7 +252,13 @@ $(document).ready(function() {
     <div class="col-lg-9">
       <div id="successdiv"></div>
       <div id="errordiv"></div>      
+     
+      <div class="progress progress-striped active">
+        <div class="progress-bar" role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
+      </div>
+     
       <div id="plotdiv"></div>
+
     </div>  
   </div>
 </div>
