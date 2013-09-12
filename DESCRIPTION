@@ -10,3 +10,5 @@ License: Apache2
 LazyData: true
 Imports:
     rworldmap
+Suggests: opencpu (>= 1.0.1)
+
