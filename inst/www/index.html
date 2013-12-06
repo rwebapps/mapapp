@@ -45,7 +45,7 @@ $(document).ready(function() {
       $("#plotbutton").attr("disabled", "disabled");
       
       //call uploaddata function
-      var req = ocpu.rcall("uploaddata", {
+      var req = ocpu.call("uploaddata", {
         csvfile : $("#csvfile")[0].files[0]    
       }, function(session){
         dataframe = session;
