@@ -82,7 +82,7 @@ $(document).ready(function() {
     var newcountrycolumn = $("#nameJoinColumn").val();
     
     $("#plotbutton").attr("disabled", "disabled");
-    return ocpu.rcall("join", {
+    return ocpu.call("join", {
       dF : dataframe, 
       nameJoinColumn : newcountrycolumn,
       joinCode :newjoincode
