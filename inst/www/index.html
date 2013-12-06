@@ -7,8 +7,8 @@
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 
 <!-- ocpu library -->
-<script src="jquery/jquery-1.9.1.js"> </script>
-<script src="opencpu/opencpu.js"> </script>
+<script src="jquery/jquery-1.10.2.min.js"> </script>
+<script src="opencpu/opencpu-0.4.js"> </script>
 
 <!-- some optional styling stuff -->
 <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
@@ -45,10 +45,10 @@ $(document).ready(function() {
       $("#plotbutton").attr("disabled", "disabled");
       
       //call uploaddata function
-      var req = opencpu.r_fun_call("uploaddata", {
+      var req = ocpu.rcall("uploaddata", {
         csvfile : $("#csvfile")[0].files[0]    
-      }, function(tmp){
-        dataframe = tmp;
+      }, function(session){
+        dataframe = session;
         datainfo();
       }).fail(function(jqXHR){
         errormsg(jqXHR.responseText);
@@ -59,7 +59,7 @@ $(document).ready(function() {
   });
   
   function datainfo(){
-    return opencpu.r_fun_json("datainfo", {mydata : dataframe}, function(jsondata){
+    return ocpu.rpc("datainfo", {mydata : dataframe}, function(jsondata){
       $.each(jsondata.strings, function(i, val){
         if(val){
           $("<option>").text(val).appendTo("#nameJoinColumn");
@@ -82,15 +82,15 @@ $(document).ready(function() {
     var newcountrycolumn = $("#nameJoinColumn").val();
     
     $("#plotbutton").attr("disabled", "disabled");
-    return opencpu.r_fun_call("join", {
+    return ocpu.rcall("join", {
       dF : dataframe, 
       nameJoinColumn : newcountrycolumn,
       joinCode :newjoincode
-    }, function(tmp){
-      mapdata = tmp;
+    }, function(session){
+      mapdata = session;
       joincode = newjoincode;
       countrycolumn = newcountrycolumn;
-      $.get(tmp.getFile("messages.txt"), function(text){
+      session.getFile("messages.txt", function(text){
         successmsg(text);
       });
     }).fail(function(jqXHR){
@@ -102,7 +102,7 @@ $(document).ready(function() {
   
   function makeplot(){
     $("#plotbutton").attr("disabled", "disabled");
-    return $("#plotdiv").r_fun_plot("map", {
+    return $("#plotdiv").rplot("map", {
       mapToPlot : mapdata, 
       nameColumnToPlot : $("#nameColumnToPlot").val(),
       colourPalette : $("#colourPalette").val(),
